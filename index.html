@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Cell Quiz</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function CellQuiz() {
+            // Species configuration
+            const speciesConfig = {
+                dog: {
+                    name: 'Dog',
+                    emoji: '🐕',
+                    folder: 'dog',
+                    gradient: 'from-amber-500 to-orange-600',
+                    cellNames: {
+                        neutrophil: 'Neutrophil',
+                        lymphocyte: 'Lymphocyte',
+                        monocyte: 'Monocyte',
+                        eosinophil: 'Eosinophil'
+                    }
+                },
+                parrot: {
+                    name: 'Parrot',
+                    emoji: '🦜',
+                    folder: 'parrot',
+                    gradient: 'from-green-500 to-emerald-600',
+                    cellNames: {
+                        neutrophil: 'Heterophil',
+                        lymphocyte: 'Lymphocyte',
+                        monocyte: 'Monocyte',
+                        eosinophil: 'Eosinophil'
+                    }
+                }
+            };
+
+            const getCellImages = (species) => ({
+                neutrophil: [
+                    `${species}/neutrophil1.png`,
+                    `${species}/neutrophil2.png`,
+                    `${species}/neutrophil3.png`,
+                    `${species}/neutrophil4.png`,
+                    `${species}/neutrophil5.png`
+                ],
+                lymphocyte: [
+                    `${species}/lymphocyte1.png`,
+                    `${species}/lymphocyte2.png`,
+                    `${species}/lymphocyte3.png`,
+                    `${species}/lymphocyte4.png`,
+                    `${species}/lymphocyte5.png`
+                ],
+                monocyte: [
+                    `${species}/monocyte1.png`,
+                    `${species}/monocyte2.png`,
+                    `${species}/monocyte3.png`,
+                    `${species}/monocyte4.png`,
+                    `${species}/monocyte5.png`
+                ],
+                eosinophil: [
+                    `${species}/eosinophil1.png`,
+                    `${species}/eosinophil2.png`,
+                    `${species}/eosinophil3.png`,
+                    `${species}/eosinophil4.png`,
+                    `${species}/eosinophil5.png`
+                ]
+            });
+
+            const levels = [
+                {
+                    level: 1,
+                    title: "[Neutrophil] vs Lymphocytes",
+                    cellTypes: ['neutrophil', 'lymphocyte'],
+                    colors: ['from-pink-500 to-rose-500', 'from-indigo-500 to-blue-500']
+                },
+                {
+                    level: 2,
+                    title: "[Neutrophil] vs Monocytes",
+                    cellTypes: ['neutrophil', 'monocyte'],
+                    colors: ['from-pink-500 to-rose-500', 'from-purple-500 to-violet-500']
+                },
+                {
+                    level: 3,
+                    title: "Monocytes vs Eosinophils",
+                    cellTypes: ['monocyte', 'eosinophil'],
+                    colors: ['from-purple-500 to-violet-500', 'from-orange-500 to-red-500']
+                },
+                {
+                    level: 4,
+                    title: "Eosinophils vs [Neutrophil]",
+                    cellTypes: ['eosinophil', 'neutrophil'],
+                    colors: ['from-orange-500 to-red-500', 'from-pink-500 to-rose-500']
+                },
+                {
+                    level: 5,
+                    title: "All Cell Types!",
+                    cellTypes: ['neutrophil', 'monocyte', 'lymphocyte', 'eosinophil'],
+                    colors: ['from-pink-500 to-rose-500', 'from-purple-500 to-violet-500', 'from-indigo-500 to-blue-500', 'from-orange-500 to-red-500']
+                }
+            ];
+
+            const [selectedSpecies, setSelectedSpecies] = useState(null);
+            const [allCellImages, setAllCellImages] = useState(null);
+            const [currentLevel, setCurrentLevel] = useState(0);
+            const [levelImages, setLevelImages] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [levelScores, setLevelScores] = useState([0, 0, 0, 0, 0]);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [levelFinished, setLevelFinished] = useState(false);
+            const [allLevelsComplete, setAllLevelsComplete] = useState(false);
+            const [showQR, setShowQR] = useState(false);
+            const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+            const chooseSpecies = (species) => {
+                setSelectedSpecies(species);
+                setAllCellImages(getCellImages(speciesConfig[species].folder));
+            };
+
+            useEffect(() => {
+                if (allCellImages) {
+                    startLevel(0);
+                }
+            }, [allCellImages]);
+
+            const startLevel = (levelIndex) => {
+                const level = levels[levelIndex];
+                const images = [];
+                const imagesPerType = levelIndex === 4 ? 2 : 3;
+                
+                level.cellTypes.forEach(cellType => {
+                    const cellImages = [...allCellImages[cellType]].sort(() => Math.random() - 0.5).slice(0, imagesPerType);
+                    cellImages.forEach(img => {
+                        images.push({ url: img, type: cellType });
+                    });
+                });
+
+                const shuffled = images.sort(() => Math.random() - 0.5);
+                setLevelImages(shuffled);
+                setCurrentIndex(0);
+                setScore(0);
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setLevelFinished(false);
+            };
+
+            const handleAnswer = (answer) => {
+                if (showFeedback) return;
+                setSelectedAnswer(answer);
+                setShowFeedback(true);
+                const isCorrect = answer === levelImages[currentIndex].type;
+                if (isCorrect) {
+                    setScore(score + 1);
+                }
+
+                setTimeout(() => {
+                    if (currentIndex < levelImages.length - 1) {
+                        setCurrentIndex(currentIndex + 1);
+                        setSelectedAnswer(null);
+                        setShowFeedback(false);
+                    } else {
+                        const newScores = [...levelScores];
+                        newScores[currentLevel] = isCorrect ? score + 1 : score;
+                        setLevelScores(newScores);
+                        setLevelFinished(true);
+                    }
+                }, 800);
+            };
+
+            const nextLevel = () => {
+                if (currentLevel < levels.length - 1) {
+                    const nextLevelIndex = currentLevel + 1;
+                    setCurrentLevel(nextLevelIndex);
+                    startLevel(nextLevelIndex);
+                } else {
+                    setAllLevelsComplete(true);
+                }
+            };
+
+            const restartQuiz = () => {
+                setSelectedSpecies(null);
+                setAllCellImages(null);
+                setCurrentLevel(0);
+                setLevelScores([0, 0, 0, 0, 0]);
+                setAllLevelsComplete(false);
+            };
+
+            const generateQRCode = () => {
+                const currentUrl = window.location.href;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(currentUrl)}`;
+                setQrCodeUrl(qrUrl);
+                setShowQR(true);
+            };
+
+            const downloadQRCode = () => {
+                const link = document.createElement('a');
+                link.href = qrCodeUrl;
+                link.download = 'cell-quiz-qr-code.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const getCellEmoji = (cellType) => {
+                const emojis = { neutrophil: '⚪', lymphocyte: '🔵', monocyte: '🟣', eosinophil: '🔴' };
+                return emojis[cellType] || '⚪';
+            };
+
+            const getCellLabel = (cellType) => {
+                if (!selectedSpecies) return cellType.charAt(0).toUpperCase() + cellType.slice(1);
+                return speciesConfig[selectedSpecies].cellNames[cellType];
+            };
+
+            const getLevelTitle = (levelData) => {
+                if (!selectedSpecies) return levelData.title;
+                const neutrophilName = speciesConfig[selectedSpecies].cellNames.neutrophil;
+                return levelData.title.replace(/\[Neutrophil\]/g, neutrophilName + 's');
+            };
+
+            // Welcome Screen
+            if (!selectedSpecies) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-12 max-w-3xl w-full text-center">
+                            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-gray-800 mb-2 sm:mb-4">Welcome to...</h1>
+                            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 sm:mb-6">THE CELL QUIZ!</h2>
+                            <p className="text-xl sm:text-2xl md:text-3xl text-gray-700 font-semibold mb-8 sm:mb-12">Can you identify them all? 🔬</p>
+                            <div className="mb-6 sm:mb-8">
+                                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Choose Your Species:</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                                    <button onClick={() => chooseSpecies('dog')} className="bg-gradient-to-br from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-2xl p-6 sm:p-8 transition-all transform active:scale-95 sm:hover:scale-105">
+                                        <div className="text-6xl sm:text-8xl mb-2 sm:mb-4">🐕</div>
+                                        <div className="text-2xl sm:text-3xl font-bold">Dog</div>
+                                        <div className="text-base sm:text-lg opacity-90 mt-1 sm:mt-2">Canine Cells</div>
+                                    </button>
+                                    <button onClick={() => chooseSpecies('parrot')} className="bg-gradient-to-br from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-2xl p-6 sm:p-8 transition-all transform active:scale-95 sm:hover:scale-105">
+                                        <div className="text-6xl sm:text-8xl mb-2 sm:mb-4">🦜</div>
+                                        <div className="text-2xl sm:text-3xl font-bold">Parrot</div>
+                                        <div className="text-base sm:text-lg opacity-90 mt-1 sm:mt-2">Avian Cells</div>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="bg-blue-50 rounded-2xl p-4 sm:p-6 border-2 border-blue-200">
+                                <p className="text-gray-700 text-sm sm:text-base md:text-lg"><strong>5 Levels • 4 Cell Types</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // QR Code Screen
+            if (showQR) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-center">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">Share Your Quiz! 📱</h2>
+                            <p className="text-gray-600 mb-6">Scan this QR code</p>
+                            <div className="bg-white p-4 rounded-2xl border-4 border-blue-500 inline-block mb-6">
+                                <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64 sm:w-80 sm:h-80" />
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                                <button onClick={downloadQRCode} className="flex-1 bg-green-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-green-700">Download QR</button>
+                                <button onClick={() => setShowQR(false)} className="flex-1 bg-gray-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-700">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Final Results
+            if (allLevelsComplete) {
+                const totalScore = levelScores.reduce((a, b) => a + b, 0);
+                const speciesInfo = speciesConfig[selectedSpecies];
+                
+                // Calculate weak cell types
+                const weakCellTypes = [];
+                let allAbove80 = true;
+                const cellTypeScores = {
+                    neutrophil: { correct: Math.round((levelScores[0] + levelScores[1] + levelScores[3] + levelScores[4]/4)/3), total: 8 },
+                    lymphocyte: { correct: Math.round((levelScores[0] + levelScores[4]/4)), total: 5 },
+                    monocyte: { correct: Math.round((levelScores[1] + levelScores[2] + levelScores[4]/4)/2), total: 8 },
+                    eosinophil: { correct: Math.round((levelScores[2] + levelScores[3] + levelScores[4]/4)/2), total: 8 }
+                };
+
+                Object.keys(cellTypeScores).forEach(cellType => {
+                    const perf = cellTypeScores[cellType];
+                    if ((perf.correct / perf.total) < 0.8) {
+                        allAbove80 = false;
+                        weakCellTypes.push(getCellLabel(cellType));
+                    }
+                });
+
+                return (
+                    <div className={`min-h-screen bg-gradient-to-br ${speciesInfo.gradient} flex items-center justify-center p-4`}>
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full text-center">
+                            <div className="text-6xl mb-4">🏆</div>
+                            {allAbove80 ? (
+                                <>
+                                    <h1 className="text-3xl sm:text-5xl font-bold text-gray-800 mb-4">🎉 Congratulations! 🎉</h1>
+                                    <div className="text-5xl mb-4">{speciesInfo.emoji}</div>
+                                    <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">You are now an expert at identifying {speciesInfo.name.toLowerCase()} cells!</h2>
+                                    <p className="text-base sm:text-xl text-gray-600 mb-8">You can confidently identify {speciesInfo.cellNames.neutrophil.toLowerCase()}s, lymphocytes, monocytes, and eosinophils in {speciesInfo.name.toLowerCase()} blood samples!</p>
+                                </>
+                            ) : (
+                                <>
+                                    <h1 className="text-3xl sm:text-5xl font-bold text-gray-800 mb-4">🌟 Great Effort! 🌟</h1>
+                                    <div className="text-5xl mb-4">{speciesInfo.emoji}</div>
+                                    <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-6">You're making excellent progress!</h2>
+                                    <p className="text-base sm:text-xl text-gray-600 mb-6">You've completed all 5 levels - that's fantastic! Keep practicing to improve further.</p>
+                                    <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4 mb-6">
+                                        <p className="text-base sm:text-lg font-semibold mb-2">
+                                          💡 Focus on:{' '}
+                                          {weakCellTypes.map((type, i) => {
+                                            const plural = type.endsWith('s') ? type : type + 's';
+                                            if (i === 0) return plural.charAt(0).toUpperCase() + plural.slice(1);
+                                            if (i === weakCellTypes.length - 1) return ` and ${plural}`;
+                                            return `, ${plural}`;
+                                          })}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                            <div className="bg-blue-50 rounded-2xl p-4 mb-6">
+                                <h3 className="text-xl font-bold mb-3">Your Scores</h3>
+                                {levels.map((level, idx) => (
+                                    <div key={idx} className="flex justify-between bg-white rounded-xl p-3 mb-2">
+                                        <span>Level {level.level}</span>
+                                        <span className="font-bold text-blue-600">{levelScores[idx]}/{idx === 4 ? 8 : 6}</span>
+                                    </div>
+                                ))}
+                                <div className="border-t-2 pt-3 mt-3">
+                                    <div className="flex justify-between">
+                                        <span className="font-bold">Total</span>
+                                        <span className="font-bold text-purple-600">{totalScore}/32</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button onClick={restartQuiz} className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold hover:from-blue-700 hover:to-purple-700">Start Over</button>
+                                <button onClick={generateQRCode} className="flex-1 bg-green-600 text-white px-6 py-3 rounded-full font-bold hover:bg-green-700">Share QR</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Level Complete
+            if (levelFinished) {
+                const maxScore = currentLevel === 4 ? 8 : 6;
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-center">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-4">Level {currentLevel + 1} Complete!</h2>
+                            <div className="text-5xl font-bold text-green-600 mb-4">{score}/{maxScore}</div>
+                            <p className="text-xl text-gray-600 mb-6">{score === maxScore ? 'Perfect! 🌟' : score >= maxScore * 0.7 ? 'Great job! 👏' : 'Keep practicing! 💪'}</p>
+                            <div className="flex justify-center gap-2 mb-6">
+                                {[1, 2, 3, 4, 5].map((level) => (
+                                    <div key={level} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${level <= currentLevel + 1 ? 'bg-green-500 text-white' : 'bg-gray-300'}`}>{level}</div>
+                                ))}
+                            </div>
+                            <button onClick={nextLevel} className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white px-8 py-4 rounded-full text-xl font-bold">{currentLevel === 4 ? 'See Results! 🎉' : 'Next Level →'}</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Quiz Screen
+            if (levelImages.length === 0) {
+                return <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center"><div className="text-white text-2xl">Loading...</div></div>;
+            }
+
+            const currentImage = levelImages[currentIndex];
+            const isCorrect = selectedAnswer === currentImage.type;
+            const currentLevelData = levels[currentLevel];
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-3 sm:p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl p-4 sm:p-6 md:p-8 max-w-2xl w-full">
+                        <div className="mb-4">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <span className="text-2xl">{speciesConfig[selectedSpecies].emoji}</span>
+                                <h1 className="text-lg sm:text-xl font-bold text-gray-800">Level {currentLevel + 1}: {getLevelTitle(currentLevelData)}</h1>
+                            </div>
+                            <div className="flex justify-between text-sm sm:text-base">
+                                <span>Image {currentIndex + 1}/{levelImages.length}</span>
+                                <span className="text-blue-600 font-bold">Score: {score}</span>
+                            </div>
+                        </div>
+                        <div className="mb-4 relative">
+                            <img src={currentImage.url} alt="Cell" className="w-full h-64 sm:h-80 object-cover rounded-2xl shadow-lg bg-gray-100" />
+                            {showFeedback && (
+                                <div className={`absolute inset-0 rounded-2xl flex items-center justify-center ${isCorrect ? 'bg-green-500' : 'bg-red-500'} bg-opacity-90`}>
+                                    <div className="text-white text-8xl">{isCorrect ? '✓' : '✗'}</div>
+                                </div>
+                            )}
+                        </div>
+                        <h2 className="text-base sm:text-xl font-bold text-center mb-4">What type of cell is this?</h2>
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            {currentLevelData.cellTypes.map((cellType, idx) => (
+                                <button key={cellType} onClick={() => handleAnswer(cellType)} disabled={showFeedback} className={`py-3 px-2 rounded-xl text-sm sm:text-base font-bold flex flex-col items-center justify-center min-h-[80px] ${showFeedback ? (selectedAnswer === cellType ? (isCorrect ? 'bg-green-500 text-white' : 'bg-red-500 text-white') : 'bg-gray-200 text-gray-400') : `bg-gradient-to-r ${currentLevelData.colors[idx]} text-white hover:opacity-90`}`}>
+                                    <span className="text-2xl mb-1">{getCellEmoji(cellType)}</span>
+                                    <span className="text-center">{getCellLabel(cellType)}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all" style={{width: `${((currentIndex + 1) / levelImages.length) * 100}%`}}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CellQuiz />);
+    </script>
+</body>
+</html>
